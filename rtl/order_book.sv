@@ -42,15 +42,13 @@ module order_book
     logic       ask_valid   [MAX_LEVELS-1:0];
 
     // ---- Order Hash Table (order_id -> {price, qty, side}) ----
-    typedef struct packed {
-        logic       valid;
-        order_id_t  order_id;
-        price_t     price;
-        qty_t       quantity;
-        side_t      side;
-    } order_entry_t;
-
-    order_entry_t order_table [MAX_ORDERS-1:0];
+    // Keep fields in parallel arrays for simulator portability. Some
+    // open-source simulators struggle with indexed packed-struct arrays.
+    logic      order_valid [MAX_ORDERS-1:0];
+    order_id_t order_ids   [MAX_ORDERS-1:0];
+    price_t    order_prices[MAX_ORDERS-1:0];
+    qty_t      order_qtys  [MAX_ORDERS-1:0];
+    side_t     order_sides [MAX_ORDERS-1:0];
 
     // ---- Internal Signals ----
     logic [HASH_BITS-1:0] hash_idx;
@@ -107,7 +105,11 @@ module order_book
                 ask_counts[i] <= '0;
             end
             for (int i = 0; i < MAX_ORDERS; i++) begin
-                order_table[i].valid <= 1'b0;
+                order_valid[i] <= 1'b0;
+                order_ids[i]    <= '0;
+                order_prices[i] <= '0;
+                order_qtys[i]   <= '0;
+                order_sides[i]  <= '0;
             end
             book_changed <= 1'b0;
         end else if (enable && msg_valid && msg_in.valid) begin
@@ -117,22 +119,28 @@ module order_book
             case (msg_in.msg_type)
                 // ---- ADD ORDER ----
                 MSG_ADD: begin
+                    logic [HASH_BITS-1:0] h;
+                    logic [3:0] lvl;
+                    logic [3:0] empty;
+
+                    h = hash_order_id(msg_in.order_id);
+
                     // Store in hash table
-                    order_table[hash_order_id(msg_in.order_id)].valid    <= 1'b1;
-                    order_table[hash_order_id(msg_in.order_id)].order_id <= msg_in.order_id;
-                    order_table[hash_order_id(msg_in.order_id)].price    <= msg_in.price;
-                    order_table[hash_order_id(msg_in.order_id)].quantity <= msg_in.quantity;
-                    order_table[hash_order_id(msg_in.order_id)].side     <= msg_in.side;
+                    order_valid[h] <= 1'b1;
+                    order_ids[h]    <= msg_in.order_id;
+                    order_prices[h] <= msg_in.price;
+                    order_qtys[h]   <= msg_in.quantity;
+                    order_sides[h]  <= msg_in.side;
 
                     if (msg_in.side == SIDE_BID) begin
-                        logic [3:0] lvl = find_bid_level(msg_in.price);
+                        lvl = find_bid_level(msg_in.price);
                         if (lvl != 4'hF) begin
                             // Level exists — add quantity
                             bid_qtys[lvl]   <= bid_qtys[lvl] + msg_in.quantity;
                             bid_counts[lvl] <= bid_counts[lvl] + 1;
                         end else begin
                             // New level
-                            logic [3:0] empty = find_empty_bid();
+                            empty = find_empty_bid();
                             if (empty != 4'hF) begin
                                 bid_valid[empty]  <= 1'b1;
                                 bid_prices[empty] <= msg_in.price;
@@ -141,12 +149,12 @@ module order_book
                             end
                         end
                     end else begin
-                        logic [3:0] lvl = find_ask_level(msg_in.price);
+                        lvl = find_ask_level(msg_in.price);
                         if (lvl != 4'hF) begin
                             ask_qtys[lvl]   <= ask_qtys[lvl] + msg_in.quantity;
                             ask_counts[lvl] <= ask_counts[lvl] + 1;
                         end else begin
-                            logic [3:0] empty = find_empty_ask();
+                            empty = find_empty_ask();
                             if (empty != 4'hF) begin
                                 ask_valid[empty]  <= 1'b1;
                                 ask_prices[empty] <= msg_in.price;
@@ -160,42 +168,48 @@ module order_book
 
                 // ---- DELETE ORDER ----
                 MSG_DELETE: begin
-                    logic [HASH_BITS-1:0] h = hash_order_id(msg_in.order_id);
-                    if (order_table[h].valid && order_table[h].order_id == msg_in.order_id) begin
-                        if (order_table[h].side == SIDE_BID) begin
-                            logic [3:0] lvl = find_bid_level(order_table[h].price);
+                    logic [HASH_BITS-1:0] h;
+                    logic [3:0] lvl;
+
+                    h = hash_order_id(msg_in.order_id);
+                    if (order_valid[h] && order_ids[h] == msg_in.order_id) begin
+                        if (order_sides[h] == SIDE_BID) begin
+                            lvl = find_bid_level(order_prices[h]);
                             if (lvl != 4'hF) begin
-                                if (bid_qtys[lvl] <= order_table[h].quantity) begin
+                                if (bid_qtys[lvl] <= order_qtys[h]) begin
                                     bid_valid[lvl] <= 1'b0;
                                     bid_qtys[lvl]  <= '0;
                                 end else begin
-                                    bid_qtys[lvl]   <= bid_qtys[lvl] - order_table[h].quantity;
+                                    bid_qtys[lvl]   <= bid_qtys[lvl] - order_qtys[h];
                                     bid_counts[lvl] <= bid_counts[lvl] - 1;
                                 end
                             end
                         end else begin
-                            logic [3:0] lvl = find_ask_level(order_table[h].price);
+                            lvl = find_ask_level(order_prices[h]);
                             if (lvl != 4'hF) begin
-                                if (ask_qtys[lvl] <= order_table[h].quantity) begin
+                                if (ask_qtys[lvl] <= order_qtys[h]) begin
                                     ask_valid[lvl] <= 1'b0;
                                     ask_qtys[lvl]  <= '0;
                                 end else begin
-                                    ask_qtys[lvl]   <= ask_qtys[lvl] - order_table[h].quantity;
+                                    ask_qtys[lvl]   <= ask_qtys[lvl] - order_qtys[h];
                                     ask_counts[lvl] <= ask_counts[lvl] - 1;
                                 end
                             end
                         end
-                        order_table[h].valid <= 1'b0;
+                        order_valid[h] <= 1'b0;
                     end
                     book_changed <= 1'b1;
                 end
 
                 // ---- EXECUTE / TRADE ----
                 MSG_EXECUTE, MSG_TRADE: begin
-                    logic [HASH_BITS-1:0] h = hash_order_id(msg_in.order_id);
-                    if (order_table[h].valid) begin
-                        if (order_table[h].side == SIDE_BID) begin
-                            logic [3:0] lvl = find_bid_level(order_table[h].price);
+                    logic [HASH_BITS-1:0] h;
+                    logic [3:0] lvl;
+
+                    h = hash_order_id(msg_in.order_id);
+                    if (order_valid[h]) begin
+                        if (order_sides[h] == SIDE_BID) begin
+                            lvl = find_bid_level(order_prices[h]);
                             if (lvl != 4'hF) begin
                                 if (bid_qtys[lvl] <= msg_in.quantity) begin
                                     bid_valid[lvl] <= 1'b0;
@@ -205,7 +219,7 @@ module order_book
                                 end
                             end
                         end else begin
-                            logic [3:0] lvl = find_ask_level(order_table[h].price);
+                            lvl = find_ask_level(order_prices[h]);
                             if (lvl != 4'hF) begin
                                 if (ask_qtys[lvl] <= msg_in.quantity) begin
                                     ask_valid[lvl] <= 1'b0;
@@ -216,10 +230,10 @@ module order_book
                             end
                         end
                         // Update remaining qty in order table
-                        if (order_table[h].quantity <= msg_in.quantity)
-                            order_table[h].valid <= 1'b0;
+                        if (order_qtys[h] <= msg_in.quantity)
+                            order_valid[h] <= 1'b0;
                         else
-                            order_table[h].quantity <= order_table[h].quantity - msg_in.quantity;
+                            order_qtys[h] <= order_qtys[h] - msg_in.quantity;
                     end
                     book_changed <= 1'b1;
                 end
