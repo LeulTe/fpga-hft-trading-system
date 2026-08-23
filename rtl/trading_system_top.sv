@@ -154,7 +154,7 @@ module trading_system_top
         .tob              (tob),
         .tob_valid        (tob_valid),
         .fill_valid       (1'b0),       // TODO: connect fill reports
-        .fill_side        (SIDE_BID),
+        .fill_side        (8'h42),
         .fill_qty         (32'd0),
         .bid_order        (mm_bid_order),
         .ask_order        (mm_ask_order),
