@@ -1,5 +1,7 @@
-# FPGA HFT Trading System - Makefile
-# Supports: Icarus Verilog, Verilator, Vivado
+# TPIPELINE - Makefile
+# Supports: Icarus Verilog, Verilator, and the inherited upstream Vivado flow.
+# The active fork target is the minimal low-latency datapath. The inherited
+# SmartNIC/AI target is kept for reference only.
 
 # ---- Configuration ----
 IVERILOG    = iverilog
@@ -13,7 +15,7 @@ TB_DIR      = tb
 # ---- Source Files (dependency order) ----
 PKG         = $(RTL_DIR)/fixed_point_pkg.sv
 
-CORE_RTL    = $(PKG) \
+TPIPELINE_RTL = $(PKG) \
               $(RTL_DIR)/ema_calculator.sv \
               $(RTL_DIR)/market_data_parser.sv \
               $(RTL_DIR)/order_book.sv \
@@ -21,6 +23,9 @@ CORE_RTL    = $(PKG) \
               $(RTL_DIR)/risk_manager.sv \
               $(RTL_DIR)/order_generator.sv \
               $(RTL_DIR)/trading_system_top.sv
+
+# Preserve the upstream variable name while the first refactor is in progress.
+CORE_RTL    = $(TPIPELINE_RTL)
 
 SMARTNIC_RTL = $(PKG) \
                $(RTL_DIR)/ema_calculator.sv \
@@ -39,21 +44,27 @@ SMARTNIC_RTL = $(PKG) \
 ALL_RTL     = $(PKG) $(wildcard $(RTL_DIR)/*.sv)
 
 # ---- Default target ----
-.PHONY: all clean lint sim-basic sim-smartnic sim-all wave-basic wave-smartnic help
+.PHONY: all clean lint lint-active sim-tpipeline sim-basic sim-smartnic sim-all wave-basic wave-smartnic help
 
-all: sim-all
+all: sim-tpipeline
 
 help:
 	@echo "Available targets:"
-	@echo "  lint           - Run Verilator lint on all RTL"
-	@echo "  sim-basic      - Simulate basic pipeline testbench"
-	@echo "  sim-smartnic   - Simulate full SmartNIC testbench"
-	@echo "  sim-all        - Run all simulations"
+	@echo "  lint-active    - Run Verilator lint on active TPIPELINE RTL"
+	@echo "  lint           - Run Verilator lint on all inherited RTL"
+	@echo "  sim-tpipeline  - Simulate active TPIPELINE baseline"
+	@echo "  sim-basic      - Alias for sim-tpipeline during baseline refactor"
+	@echo "  sim-smartnic   - Simulate inherited upstream SmartNIC/AI testbench"
+	@echo "  sim-all        - Run active and inherited simulations"
 	@echo "  wave-basic     - Open basic testbench waveforms in GTKWave"
 	@echo "  wave-smartnic  - Open SmartNIC waveforms in GTKWave"
 	@echo "  clean          - Remove simulation artifacts"
 
 # ---- Lint ----
+lint-active:
+	$(VERILATOR) --lint-only -Wall --timing $(TPIPELINE_RTL)
+	@echo "Active TPIPELINE lint passed."
+
 lint:
 	$(VERILATOR) --lint-only -Wall --timing $(ALL_RTL)
 	@echo "Lint passed."
@@ -65,6 +76,8 @@ sim_basic.vvp: $(CORE_RTL) $(TB_DIR)/tb_trading_system.sv
 sim-basic: sim_basic.vvp
 	$(VVP) $<
 	@echo "Basic simulation complete."
+
+sim-tpipeline: sim-basic
 
 wave-basic: sim-basic
 	$(GTKWAVE) trading_system_tb.vcd &
