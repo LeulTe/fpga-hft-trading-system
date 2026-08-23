@@ -100,9 +100,28 @@ The verification plan is:
 
 ## Current Status
 
-This branch is the fork setup point. The upstream RTL has been cloned and the
-active project scope is now documented. The next implementation milestone is
-baseline reproducibility: make the minimal parser -> book -> strategy -> risk
--> TX path lint/sim clean before adding new hazard machinery.
+Milestone 0 is complete. The inherited minimal parser -> book -> strategy ->
+risk -> TX path now builds and runs with Icarus Verilog through:
+
+```sh
+make sim-basic
+```
+
+The next implementation milestone is a TPIPELINE-specific top-level,
+`rtl/tpipeline_top.sv`, before adding ready/valid backpressure and hazard
+machinery.
 
 See `docs/TPIPELINE_FORK_PLAN.md` for the milestone-by-milestone plan.
+
+## Attribution and License Status
+
+This repository is a fork of
+`https://github.com/Ashutosh0x/fpga-hft-trading-system`.
+
+At the imported upstream commit, no standalone open-source license file was
+present in the repository. That means this fork should not be treated as a
+normally licensed open-source project yet. The upstream code remains attributed
+to the original author, and TPIPELINE-specific changes are documented as fork
+work by Leul Tewelde.
+
+See `NOTICE.md` for the current license and attribution notes.
