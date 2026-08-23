@@ -64,6 +64,10 @@ Exit criteria:
 
 Goal: create a small top-level that reflects the final project shape.
 
+Status: active top-level added as `rtl/tpipeline_top.sv`; smoke test now
+instantiates this fork-specific top instead of the inherited
+`trading_system_top.sv`.
+
 Tasks:
 
 - Add `rtl/tpipeline_top.sv`.
