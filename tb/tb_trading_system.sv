@@ -195,9 +195,9 @@ module tb_trading_system;
 
         rx_start_time = $time;
 
-        // Send a new order that should trigger a quote update
-        send_market_msg(MSG_ADD, 64'd3001, 16'h0001, SIDE_BID, 32'd10001, 32'd500, 64'd7);
-        $display("[%0t] Sent ADD BID: price=10001, qty=500 (new best bid)", $time);
+        // Send a new order that materially moves the weighted mid-price.
+        send_market_msg(MSG_ADD, 64'd3001, 16'h0001, SIDE_BID, 32'd10020, 32'd500, 64'd7);
+        $display("[%0t] Sent ADD BID: price=10020, qty=500 (quote-moving best bid)", $time);
 
         // Wait for TX output
         fork
