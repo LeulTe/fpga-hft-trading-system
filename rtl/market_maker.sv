@@ -110,10 +110,12 @@ module market_maker
             quoting_active <= 1'b0;
         end else if (enable && s1_valid) begin
             // Compute my quote prices
-            price_t half_spread = SPREAD_TARGET >> 1;
+            price_t half_spread;
             price_t my_bid_price;
             price_t my_ask_price;
             logic   pos_ok;
+
+            half_spread = SPREAD_TARGET >> 1;
 
             // my_bid = wmid - half_spread - skew
             // my_ask = wmid + half_spread - skew
