@@ -5,10 +5,12 @@
 - Upstream repository: `https://github.com/Ashutosh0x/fpga-hft-trading-system`
 - Imported commit: `3124a47`
 - Local fork branch: `tpipeline-main`
+- Published fork: `https://github.com/LeulTe/fpga-hft-trading-system`
+- Publish remote: `origin`
 - Local upstream remote: `upstream`
 
-Pushes to the upstream remote are disabled in this local checkout. Add a new
-`origin` remote later if this fork is published to a personal GitHub repository.
+Pushes to the upstream remote are disabled in this local checkout so fork work
+does not accidentally target the original repository.
 
 ## Initial Bring-Up Notes
 
