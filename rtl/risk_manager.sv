@@ -66,6 +66,19 @@ module risk_manager
 
     assign order_count_window = rate_counter;
 
+    // ---- Unpacked Order Fields ----
+    // Icarus handles plain signals in always_comb more cleanly than repeated
+    // packed-struct field selects.
+    logic   order_in_is_valid;
+    side_t  order_in_side;
+    price_t order_in_price;
+    qty_t   order_in_quantity;
+
+    assign order_in_is_valid = order_in.valid;
+    assign order_in_side     = order_in.side;
+    assign order_in_price    = order_in.price;
+    assign order_in_quantity = order_in.quantity;
+
     // ---- Combinational Risk Checks ----
     logic c_position_ok;
     logic c_notional_ok;
@@ -87,28 +100,28 @@ module risk_manager
         c_new_position = current_position;
         c_price_diff   = '0;
 
-        if (order_valid && order_in.valid) begin
+        if (order_valid && order_in_is_valid) begin
             // 1. Position Limit Check
-            if (order_in.side == SIDE_BID)
-                c_new_position = current_position + $signed({1'b0, order_in.quantity});
+            if (order_in_side == SIDE_BID)
+                c_new_position = current_position + $signed({1'b0, order_in_quantity});
             else
-                c_new_position = current_position - $signed({1'b0, order_in.quantity});
+                c_new_position = current_position - $signed({1'b0, order_in_quantity});
 
             c_position_ok = (c_new_position > -$signed(MAX_POSITION)) &&
                             (c_new_position < $signed(MAX_POSITION));
 
             // 2. Notional Limit Check
-            c_notional = {32'b0, order_in.price} * {32'b0, order_in.quantity};
+            c_notional = {32'b0, order_in_price} * {32'b0, order_in_quantity};
             c_notional_ok = (c_notional <= {32'b0, MAX_NOTIONAL});
 
             // 3. Order Rate Limit Check
             c_rate_ok = (rate_counter < MAX_ORDERS_PER_SEC);
 
             // 4. Price Band Check
-            if (order_in.price >= reference_price)
-                c_price_diff = order_in.price - reference_price;
+            if (order_in_price >= reference_price)
+                c_price_diff = order_in_price - reference_price;
             else
-                c_price_diff = reference_price - order_in.price;
+                c_price_diff = reference_price - order_in_price;
 
             c_price_ok = (c_price_diff <= PRICE_BAND_TICKS);
         end
