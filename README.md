@@ -100,16 +100,17 @@ The verification plan is:
 
 ## Current Status
 
-Milestone 0 is complete. The inherited minimal parser -> book -> strategy ->
-risk -> TX path now builds and runs with Icarus Verilog through:
+Milestone 1 is in progress. The fork now has its own active top-level,
+`rtl/tpipeline_top.sv`, for the minimal parser -> book -> strategy -> risk ->
+TX path. It builds and runs with Icarus Verilog through:
 
 ```sh
 make sim-basic
 ```
 
-The next implementation milestone is a TPIPELINE-specific top-level,
-`rtl/tpipeline_top.sv`, before adding ready/valid backpressure and hazard
-machinery.
+The active smoke test reports parsed-message, book-update, risk-approval, and
+order-output counters. The next implementation milestone is ready/valid
+backpressure between stages.
 
 See `docs/TPIPELINE_FORK_PLAN.md` for the milestone-by-milestone plan.
 
