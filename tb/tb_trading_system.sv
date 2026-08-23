@@ -1,5 +1,5 @@
 // ============================================================================
-// FPGA HFT Trading System - Top-Level Testbench
+// TPIPELINE - Active Datapath Smoke Test
 // Description: Comprehensive testbench that feeds market data messages through
 //              the full pipeline and verifies order generation. Measures
 //              tick-to-trade latency in clock cycles.
@@ -32,7 +32,6 @@ module tb_trading_system;
 
     // ---- Control ----
     logic        kill_switch;
-    logic [1:0]  strategy_select;
 
     // ---- Status ----
     logic signed [31:0] position_out;
@@ -42,6 +41,9 @@ module tb_trading_system;
     logic               quoting_active_out;
     logic [7:0]         bid_depth_out;
     logic [7:0]         ask_depth_out;
+    logic [63:0]        parsed_count_out;
+    logic [63:0]        book_update_count_out;
+    logic [63:0]        risk_approved_count_out;
     logic [3:0]         led_status;
 
     // ---- Clock Generation (644 MHz → ~1.553ns period) ----
@@ -50,7 +52,7 @@ module tb_trading_system;
     always #(CLK_PERIOD/2) clk = ~clk;
 
     // ---- DUT Instantiation ----
-    trading_system_top #(
+    tpipeline_top #(
         .OB_MAX_LEVELS     (16),
         .OB_MAX_ORDERS     (1024),
         .MM_SPREAD_TARGET  (32'd2),
@@ -74,7 +76,6 @@ module tb_trading_system;
         .tx_tlast           (tx_tlast),
         .tx_tkeep           (tx_tkeep),
         .kill_switch        (kill_switch),
-        .strategy_select    (strategy_select),
         .position_out       (position_out),
         .reject_count_out   (reject_count_out),
         .orders_sent_out    (orders_sent_out),
@@ -82,6 +83,9 @@ module tb_trading_system;
         .quoting_active_out (quoting_active_out),
         .bid_depth_out      (bid_depth_out),
         .ask_depth_out      (ask_depth_out),
+        .parsed_count_out   (parsed_count_out),
+        .book_update_count_out(book_update_count_out),
+        .risk_approved_count_out(risk_approved_count_out),
         .led_status         (led_status)
     );
 
@@ -139,8 +143,8 @@ module tb_trading_system;
     // ---- Main Test Sequence ----
     initial begin
         $display("============================================================");
-        $display("  FPGA HFT Trading System — Full Pipeline Testbench");
-        $display("  Target: AMD Alveo UL3524 @ 644 MHz");
+        $display("  TPIPELINE Active Datapath Smoke Test");
+        $display("  Target: simulator baseline");
         $display("  Clock Period: %.3f ns", CLK_PERIOD);
         $display("============================================================");
 
@@ -152,7 +156,6 @@ module tb_trading_system;
         rx_tlast        = 1'b0;
         rx_tkeep        = '0;
         kill_switch     = 1'b0;
-        strategy_select = 2'd0;  // Market Maker mode
 
         // ---- Reset ----
         repeat (10) @(posedge clk);
@@ -250,6 +253,9 @@ module tb_trading_system;
         $display("  Last Order ID:   %0d", last_order_id_out);
         $display("  Rejects:         %0d", reject_count_out);
         $display("  Final Position:  %0d", position_out);
+        $display("  Parsed Messages: %0d", parsed_count_out);
+        $display("  Book Updates:    %0d", book_update_count_out);
+        $display("  Risk Approved:   %0d", risk_approved_count_out);
         $display("  LED Status:      %04b", led_status);
         $display("============================================================");
 
