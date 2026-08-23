@@ -22,9 +22,8 @@ TPIPELINE_RTL = $(PKG) \
               $(RTL_DIR)/market_maker.sv \
               $(RTL_DIR)/risk_manager.sv \
               $(RTL_DIR)/order_generator.sv \
-              $(RTL_DIR)/trading_system_top.sv
+              $(RTL_DIR)/tpipeline_top.sv
 
-# Preserve the upstream variable name while the first refactor is in progress.
 CORE_RTL    = $(TPIPELINE_RTL)
 
 SMARTNIC_RTL = $(PKG) \
