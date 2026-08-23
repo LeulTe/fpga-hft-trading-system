@@ -24,17 +24,27 @@ market_data_parser
 
 The upstream SmartNIC/AI path is intentionally inactive for TPIPELINE.
 
-## Known Baseline Issue
+## Baseline Bring-Up Result
 
 The first local `make sim-basic` attempt with Icarus Verilog did not complete.
-The failure occurs during elaboration around `rtl/order_book.sv`, where Icarus
-reports struct-array casting/indexing issues and then aborts. This should be
-treated as Milestone 0 work, not as a TPIPELINE behavior change.
+The failure occurred during elaboration around `rtl/order_book.sv`, where Icarus
+reported struct-array casting/indexing issues and then aborted.
 
-Recommended next steps:
+This has been resolved for the active baseline path by:
 
-1. Try the same minimal datapath with Verilator or another SystemVerilog
-   simulator.
-2. If Icarus support matters, simplify the `order_entry_t order_table` array
-   access pattern or split packed struct fields into parallel arrays.
-3. Only begin hazard/backpressure changes after one simulator path is stable.
+1. Splitting the order lookup table from an indexed packed-struct array into
+   parallel arrays.
+2. Removing block-scoped initialized declarations that trigger simulator
+   lifetime warnings.
+3. Unpacking `risk_manager` input fields before the combinational risk checks.
+4. Adjusting the latency smoke-test stimulus so it actually moves the strategy
+   quote.
+
+Current active baseline command:
+
+```sh
+make sim-basic
+```
+
+Expected result: the parser -> order book -> market maker -> risk -> order
+generator smoke test builds and runs to completion with Icarus Verilog.
