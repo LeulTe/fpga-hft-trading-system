@@ -1,5 +1,7 @@
 # TPIPELINE
 
+Default development branch: `tpipeline-main`.
+
 TPIPELINE is a fork of `Ashutosh0x/fpga-hft-trading-system` focused on a
 smaller, more defensible FPGA trading datapath:
 
